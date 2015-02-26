@@ -30,6 +30,8 @@ namespace WebServer
     {
         private readonly string _webRoot;
         private IScriptProcessor _scriptProcessor;
+        private IScriptProcessor _templateProcessor;
+        private string _defaultFilename;
 
         static void Main(string[] args)
         {
@@ -45,15 +47,16 @@ namespace WebServer
             string webRoot = args.Count() > 1 ? args[1] : @"C:\wwwroot";
 
             /* create an instance of the web server and start listening for requests */
-            new WebServer(port, webRoot);
+            new WebServer(port, webRoot, "index.html");
         }
 
-        public WebServer(int port, string root)
+        public WebServer(int port, string root, string filename)
         {
+            _defaultFilename = filename;
             /* this script processor instance will be used to process files of type 
              * csscript */
             _scriptProcessor = new CscriptProcessor();
-
+            _templateProcessor = new BoogelyBoogelyBooIAmAscriptProcessorThingThatWorksLaLaLaLaLaLaLaLaLaLaLALALALALALALA();
             /*TODO: add another instance of a IScriptProcessor to handle files of
              * type csweb */
 
@@ -139,39 +142,39 @@ namespace WebServer
                  * a default document doesn't exist, an HTTP Not Found response should
                  * be returned
                  */
-                if (resource.Equals("/"))
+                if (resource.EndsWith("/"))
                 {
-                    string html = "<html><body><h1>Server Server v. 1.0</h1><p>Default pages aren't support, request a specific resources</p></body></html>";
-                    _SendResponse(socket, Encoding.UTF8.GetBytes(html), "text/html; charset=utf8", ResponseType.OK);
+                    resource += _defaultFilename;
+                }
+                else if (!resource.Split('/').Last().Contains('.'))
+                {
+                    resource += "/" + _defaultFilename;
+                }
+
+                /* if an actual resource was requested, append the webroot to it to transform 
+                    * the path to a system local path and parse the full path to separate the path
+                    * from the request variables */
+                resource = string.Format("{0}{1}", _webRoot, resource.Replace("/", @"\"));
+                string[] parts = resource.Split('?');
+                resource = parts[0]; // the resource is the first half of the path
+
+                /* the request variables are the second part of the path and these are loaded
+                    * into an IDictionary instance to be used later */
+                Dictionary<string, string> requestParameters = parts.Count() > 1 ? parts[1].Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(part => part.Split('='))
+                        .ToDictionary(split => split[0], split => split[1]) : new Dictionary<string, string>();
+
+                /* if the path is to a file that exists under the webroot directory, 
+                    * create an HTTP response with that file in the response body */
+                if (File.Exists(resource))
+                {
+                    _ProcessBody(socket, resource, requestParameters);
                 }
                 else
                 {
-                    /* if an actual resource was requested, append the webroot to it to transform 
-                     * the path to a system local path and parse the full path to separate the path
-                     * from the request variables */
-                    resource = string.Format("{0}{1}", _webRoot, resource.Replace("/", @"\"));
-                    string[] parts = resource.Split('?');
-                    resource = parts[0]; // the resource is the first half of the path
-
-                    /* the request variables are the second part of the path and these are loaded
-                     * into an IDictionary instance to be used later */
-                    Dictionary<string, string> requestParameters = parts.Count() > 1 ? parts[1].Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(part => part.Split('='))
-                         .ToDictionary(split => split[0], split => split[1]) : new Dictionary<string, string>();
-
-                    /* if the path is to a file that exists under the webroot directory, 
-                     * create an HTTP response with that file in the response body */
-                    if (File.Exists(resource))
-                    {
-                        _ProcessBody(socket, resource, requestParameters);
-                    }
-                    else
-                    {
-                        /* otherwise generate a Not Found (404) response */ 
-                        _SendResponse(socket, new byte[0], null, ResponseType.NOT_FOUND);
-                    }
+                    /* otherwise generate a Not Found (404) response */ 
+                    _SendResponse(socket, new byte[0], null, ResponseType.NOT_FOUND);
                 }
-
             }
             socket.Close(); // always make sure to close network and file handles!!
         }
@@ -207,10 +210,11 @@ namespace WebServer
                         _GenerateScriptResult(socket, path, requestParameters);
                         return;
                     }
-
-                /* TODO: add another handler for processing web template files
-                 * case ".csweb": 
-                 */
+                case ".csweb":
+                    {
+                        _GenerateWebResult(socket, path, requestParameters);
+                        return;
+                    }
                 default:
                     type = "application/octet-stream";
                     break;
@@ -293,6 +297,29 @@ namespace WebServer
             using (FileStream fs = File.OpenRead(path))
             {
                 result = _scriptProcessor.ProcessScript(fs, requestParameters);
+            }
+            /* if the result was an error, send an HTTP Error (500) along wiht a summary of 
+             * what went wrong as the body */
+            if (result.Error)
+            {
+                _SendResponse(socket, Encoding.ASCII.GetBytes(result.Result), "text/html; charset=utf8", ResponseType.ERROR);
+            }
+            else
+            {
+                /* send a response with the results of the script evaluation */
+                _SendResponse(socket, Encoding.ASCII.GetBytes(result.Result), "text/html; charset=utf8", ResponseType.OK);
+            }
+        }
+
+        /* This method will process a script file and send the results as the 
+         * body of the response */
+        private void _GenerateWebResult(Socket socket, string path, Dictionary<string, string> requestParameters)
+        {
+            /* get a script result from the scrupt processor using the request parameter dictionary */
+            ScriptResult result;
+            using (FileStream fs = File.OpenRead(path))
+            {
+                result = _templateProcessor.ProcessScript(fs, requestParameters);
             }
             /* if the result was an error, send an HTTP Error (500) along wiht a summary of 
              * what went wrong as the body */

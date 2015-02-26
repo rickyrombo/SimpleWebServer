@@ -41,6 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BoogelyBoogelyBooIAmAscriptProcessorThingThatWorksLaLaLaLaLaLaLaLaLaLaLALALALALALALA.cs" />
     <Compile Include="CscriptProcessor.cs" />
     <Compile Include="IScriptProcessor.cs" />
     <Compile Include="ScriptResult.cs" />
