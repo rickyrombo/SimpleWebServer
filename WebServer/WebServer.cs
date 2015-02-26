@@ -45,9 +45,10 @@ namespace WebServer
 
             /* if the user does not provide a web root, default to /wwwroot */
             string webRoot = args.Count() > 1 ? args[1] : @"C:\wwwroot";
+            string defaultFilename = args.Count() > 2 ? args[2] : "index.html";
 
             /* create an instance of the web server and start listening for requests */
-            new WebServer(port, webRoot, "index.html");
+            new WebServer(port, webRoot, defaultFilename);
         }
 
         public WebServer(int port, string root, string filename)
