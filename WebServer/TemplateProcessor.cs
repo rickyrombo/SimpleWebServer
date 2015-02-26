@@ -1,4 +1,6 @@
 ﻿using System;
+using System.CodeDom;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace WebServer
 {
-    class BoogelyBoogelyBooIAmAscriptProcessorThingThatWorksLaLaLaLaLaLaLaLaLaLaLALALALALALALA : IScriptProcessor
+    class TemplateProcessor : IScriptProcessor
     {
         public ScriptResult ProcessScript(System.IO.Stream stream, IDictionary<string, string> requestParameters)
         {
@@ -24,19 +26,19 @@ namespace WebServer
 
         private void _HtmlAndExpressions(string html, StringBuilder script)
         {
-            Regex r = new Regex("(@{(.*?)}\\s*)\\<", RegexOptions.Singleline);
+            Regex r = new Regex("(@{(.*?)})\\s*\\<", RegexOptions.Singleline);
             int lastPos = 0;
             foreach (Match m in r.Matches(html))
             {
-                var line = "wout.WriteLine(\"" + html.Substring(lastPos, m.Index - lastPos) + "\");";
+                var line = "wout.Write(\"" + ToLiteral(html.Substring(lastPos, m.Index - lastPos)) + "\");";
                 script.AppendLine(line);
                 lastPos = m.Index + m.Groups[1].Length;
-                line = "wout.WriteLine(" + m.Groups[2].Value + ");";
+                line = "wout.Write(" + ToLiteral(m.Groups[2].Value) + ");";
                 script.AppendLine(line);
             }
             if (lastPos < html.Length - 1)
             {
-                var line = "wout.WriteLine(\"" + html.Substring(lastPos) + "\");";
+                var line = "wout.Write(\"" + ToLiteral(html.Substring(lastPos)) + "\");";
                 script.AppendLine(line);
             }
         }
@@ -59,6 +61,11 @@ namespace WebServer
                 _HtmlAndExpressions(template.Substring(lastPos), script);
             }
             return script.ToString();
+        }
+
+        private static string ToLiteral(string input)
+        {
+            return input.Replace("\n", @"\n").Replace("\r", @"\r").Replace("\t", @"\t");
         }
     }
 }

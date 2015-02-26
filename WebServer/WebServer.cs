@@ -56,7 +56,7 @@ namespace WebServer
             /* this script processor instance will be used to process files of type 
              * csscript */
             _scriptProcessor = new CscriptProcessor();
-            _templateProcessor = new BoogelyBoogelyBooIAmAscriptProcessorThingThatWorksLaLaLaLaLaLaLaLaLaLaLALALALALALALA();
+            _templateProcessor = new TemplateProcessor();
             /*TODO: add another instance of a IScriptProcessor to handle files of
              * type csweb */
 
