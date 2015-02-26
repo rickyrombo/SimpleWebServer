@@ -41,7 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="TemplateProcessor.cs" />
+    <Compile Include="CsWebTemplateProcessor.cs" />
     <Compile Include="CscriptProcessor.cs" />
     <Compile Include="IScriptProcessor.cs" />
     <Compile Include="ScriptResult.cs" />
